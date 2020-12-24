@@ -27,7 +27,6 @@
 #include "PubSubClient.h"
 #include "_wifi.h"
 #include "mqtt_client.h"
-#include "camera.h"
 
 // /* 宏定义 -----------------------------------------------------------------------*/
 // /* 类型定义 ---------------------------------------------------------------------*/
@@ -42,16 +41,15 @@ void setup()
   pinMode(LED, OUTPUT);
   Serial.begin(9600);
   Serial.println("run strat...");
-
   _WIFI_SetupWifi();
   MQTTCLIENT_Init();
   JA_Init();
-  CAMERA_Init();
 }
 
 #define LED_TOGGLE_INTERVAL_PERIOD 100 //指示灯闪烁周期
 
 u32 led_c = 0, rev_c = 0;
+
 void loop()
 {
   JA_Scan();
@@ -71,20 +69,8 @@ void loop()
     }
   }
 
-  // //mqtt客户端监听
+  //mqtt客户端监听
   mqttClient.loop();
-
-  if (picture.length == 0)
-  {
-    if (CAMERA_CapturePhotoSaveSpiffs() == 0)
-    {
-      File file;
-      File f_pic = SPIFFS.open(FILE_PHOTO);
-      picture.length = f_pic.size();
-      f_pic.read((u8 *)picture.buf, picture.length);
-      
-    }
-  }
 
   if (millis() - led_c > LED_TOGGLE_INTERVAL_PERIOD)
   {

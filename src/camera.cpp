@@ -1,15 +1,13 @@
-/*********
-  Rui Santos
-  Complete project details at https://RandomNerdTutorials.com/esp32-cam-take-photo-display-web-server/
-  
-  IMPORTANT!!! 
-   - Select Board "AI Thinker ESP32-CAM"
-   - GPIO 0 must be connected to GND to upload a sketch
-   - After connecting GPIO 0 to GND, press the ESP32-CAM on-board RESET button to put your board in flashing mode
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-*********/
+/***********************************************************************
+ * @file 	:	camera.cpp
+ * @author	:	ch
+ * @brief	:	
+ * @version:	v1.0
+ * @Copyright (C)  2020-12-24  .cdWFVCEL. all right reserved
+***********************************************************************/
+
+/* 包含头文件 -------------------------------------------------------------------*/
+#include "camera.h"
 
 #include "WiFi.h"
 #include "esp_camera.h"
@@ -24,17 +22,7 @@
 #include <SPIFFS.h>
 #include <FS.h>
 
-// Replace with your network credentials
-const char *ssid = "host";
-const char *password = "wocaonima88jqk";
-
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
-
-boolean takeNewPhoto = false;
-
-// Photo File Name to save in SPIFFS
-#define FILE_PHOTO "/photo.jpg"
+/* 宏定义 -----------------------------------------------------------------------*/
 
 // OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
 #define PWDN_GPIO_NUM 32
@@ -53,59 +41,16 @@ boolean takeNewPhoto = false;
 #define VSYNC_GPIO_NUM 25
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
-
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { text-align:center; }
-    .vert { margin-bottom: 10%; }
-    .hori{ margin-bottom: 0%; }
-  </style>
-</head>
-<body>
-  <div id="container">
-    <h2>ESP32-CAM Last Photo</h2>
-    <p>It might take more than 5 seconds to capture a photo.</p>
-    <p>
-      <button onclick="rotatePhoto();">ROTATE</button>
-      <button onclick="capturePhoto()">CAPTURE PHOTO</button>
-      <button onclick="location.reload();">REFRESH PAGE</button>
-    </p>
-  </div>
-  <div><img src="saved-photo" id="photo" width="70%"></div>
-</body>
-<script>
-  var deg = 0;
-  function capturePhoto() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', "/capture", true);
-    xhr.send();
-  }
-  function rotatePhoto() {
-    var img = document.getElementById("photo");
-    deg += 90;
-    if(isOdd(deg/90)){ document.getElementById("container").className = "vert"; }
-    else{ document.getElementById("container").className = "hori"; }
-    img.style.transform = "rotate(" + deg + "deg)";
-  }
-  function isOdd(n) { return Math.abs(n % 2) == 1; }
-</script>
-</html>)rawliteral";
-
-void setup()
+/* 类型定义 ---------------------------------------------------------------------*/
+/* 私有变量 ---------------------------------------------------------------------*/
+char pictureBuf[PICBUF_SIZE] = {0};
+PIC picture;
+/* 扩展变量 ---------------------------------------------------------------------*/
+/* 私有函数声明 -----------------------------------------------------------------*/
+/* 函数声明 ---------------------------------------------------------------------*/
+/* 函数实现 ---------------------------------------------------------------------*/
+void CAMERA_Init()
 {
-  // Serial port for debugging purposes
-  Serial.begin(9600);
-
-  // Connect to Wi-Fi
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
   if (!SPIFFS.begin(true))
   {
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -116,10 +61,6 @@ void setup()
     delay(500);
     Serial.println("SPIFFS mounted successfully");
   }
-
-  // Print ESP32 Local IP Address
-  Serial.print("IP Address: http://");
-  Serial.println(WiFi.localIP());
 
   // Turn-off the 'brownout detector'
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -159,6 +100,7 @@ void setup()
     config.jpeg_quality = 12;
     config.fb_count = 1;
   }
+
   // Camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK)
@@ -166,35 +108,6 @@ void setup()
     Serial.printf("Camera init failed with error 0x%x", err);
     ESP.restart();
   }
-
-  // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send_P(200, "text/html", index_html);
-  });
-
-  server.on("/capture", HTTP_GET, [](AsyncWebServerRequest *request) {
-    takeNewPhoto = true;
-    request->send_P(200, "text/plain", "Taking Photo");
-  });
-
-  server.on("/saved-photo", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
-  });
-
-  // Start server
-  server.begin();
-}
-
-void capturePhotoSaveSpiffs(void);
-
-void loop()
-{
-  if (takeNewPhoto)
-  {
-    capturePhotoSaveSpiffs();
-    takeNewPhoto = false;
-  }
-  delay(1);
 }
 
 // Check if photo capture was successful
@@ -206,7 +119,7 @@ bool checkPhoto(fs::FS &fs)
 }
 
 // Capture Photo and Save it to SPIFFS
-void capturePhotoSaveSpiffs(void)
+u8 CAMERA_CapturePhotoSaveSpiffs(void)
 {
   camera_fb_t *fb = NULL; // pointer
   bool ok = 0;            // Boolean indicating if the picture has been taken correctly
@@ -220,7 +133,7 @@ void capturePhotoSaveSpiffs(void)
     if (!fb)
     {
       Serial.println("Camera capture failed");
-      return;
+      return -1;
     }
 
     // Photo file name
@@ -234,10 +147,6 @@ void capturePhotoSaveSpiffs(void)
     }
     else
     {
-      for (int i = 0; i < fb->len; i++)
-      {
-        Serial.printf("%02x ", fb->buf[i]);
-      }
       file.write(fb->buf, fb->len); // payload (image), payload length
       Serial.print("The picture has been saved in ");
       Serial.print(FILE_PHOTO);
@@ -252,4 +161,7 @@ void capturePhotoSaveSpiffs(void)
     // check if file has been correctly saved in SPIFFS
     ok = checkPhoto(SPIFFS);
   } while (!ok);
+
+  return 0;
 }
+//camera.cpp

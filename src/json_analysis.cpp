@@ -23,6 +23,7 @@ public:
 SerialReceiveBuffer sRevBuf;
 StaticJsonDocument<1024> root;
 char tmpBuf[1024] = {0};
+char payloadBuf[1024] = {0};
 /* 扩展变量 ---------------------------------------------------------------------*/
 /* 私有函数声明 -----------------------------------------------------------------*/
 /* 函数声明 ---------------------------------------------------------------------*/
@@ -82,6 +83,9 @@ void JA_Scan()
                 serializeJson(root, tmpBuf, sizeof(tmpBuf));
                 Serial.print("receviced data : ");
                 Serial.println(tmpBuf);
+
+                memset(payloadBuf, 0, sizeof(payloadBuf));
+                serializeJson(root["payload"], payloadBuf, sizeof(payloadBuf));
             }
             else
             {

@@ -1,24 +1,22 @@
 /***********************************************************************
- * @file json_analysis.h
- * JSON_ANALYSIS
+ * @file _wifi.h
+ * _WIFI
  * @author	:	ch
  * @brief	:	
  * @version:	v1.0
- * @Copyright (C)  2020-12-12  .cdWFVCEL. all right reserved
+ * @Copyright (C)  2020-12-13  .cdWFVCEL. all right reserved
 ***********************************************************************/
 
-#ifndef __JSON_ANALYSIS_H_
-#define __JSON_ANALYSIS_H_
+#ifndef ___WIFI_H_
+#define ___WIFI_H_
 /* 包含头文件 ------------------------------------------------------------------*/
 #include "ch/bsp.h"
-#include "ArduinoJson.h"
+#include "WiFi.h"
 /* 宏定义 ----------------------------------------------------------------------*/
 /* 类型定义 --------------------------------------------------------------------*/
-#define JA_SERIAL Serial
+#define WIFI_SSID "host"             //wifi名
+#define WIFI_PASSWD "wocaonima88jqk" //wifi密码
 /* 变量声明 --------------------------------------------------------------------*/
-extern StaticJsonDocument<1024> root;
-extern char payloadBuf[1024];
 /* 函数声明 --------------------------------------------------------------------*/
-void JA_Init();
-void JA_Scan();
-#endif // __JSON_ANALYSIS_H_
+void _WIFI_SetupWifi();
+#endif // ___WIFI_H_

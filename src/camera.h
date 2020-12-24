@@ -1,24 +1,28 @@
 /***********************************************************************
- * @file json_analysis.h
- * JSON_ANALYSIS
+ * @file camera.h
+ * CAMERA
  * @author	:	ch
  * @brief	:	
  * @version:	v1.0
- * @Copyright (C)  2020-12-12  .cdWFVCEL. all right reserved
+ * @Copyright (C)  2020-12-24  .cdWFVCEL. all right reserved
 ***********************************************************************/
 
-#ifndef __JSON_ANALYSIS_H_
-#define __JSON_ANALYSIS_H_
+#ifndef __CAMERA_H_
+#define __CAMERA_H_
 /* 包含头文件 ------------------------------------------------------------------*/
 #include "ch/bsp.h"
-#include "ArduinoJson.h"
 /* 宏定义 ----------------------------------------------------------------------*/
+#define FILE_PHOTO "/photo.jpg"
+#define PICBUF_SIZE (40 * 1024)
 /* 类型定义 --------------------------------------------------------------------*/
-#define JA_SERIAL Serial
+typedef struct PIC
+{
+    char buf[PICBUF_SIZE] = {0};
+    u32 length;
+};
 /* 变量声明 --------------------------------------------------------------------*/
-extern StaticJsonDocument<1024> root;
-extern char payloadBuf[1024];
+extern PIC picture;
 /* 函数声明 --------------------------------------------------------------------*/
-void JA_Init();
-void JA_Scan();
-#endif // __JSON_ANALYSIS_H_
+void CAMERA_Init();
+u8 CAMERA_CapturePhotoSaveSpiffs(void);
+#endif // __CAMERA_H_
