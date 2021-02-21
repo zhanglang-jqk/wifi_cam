@@ -20,9 +20,9 @@
 /* 宏定义 -----------------------------------------------------------------------*/
 /* 类型定义 ---------------------------------------------------------------------*/
 /* 私有变量 ---------------------------------------------------------------------*/
-int postMsgId = 0;    //记录已经post了多少条
-Ticker tim1;          //这个定时器是为了每5秒上传一次数据
-WiFiClient espClient; //创建网络连接客户端
+int postMsgId = 0;                  //记录已经post了多少条
+Ticker tim1;                        //这个定时器是为了每5秒上传一次数据
+WiFiClient espClient;               //创建网络连接客户端
 PubSubClient mqttClient(espClient); //通过网络客户端连接创建mqtt连接客户端
 // MyPubSubClient mqttClient(espClient);
 u8 *MyPubSubClient::mqttBuf = NULL;
@@ -105,33 +105,36 @@ void MQTTCLIENT_ClientReconnect()
     }
 }
 
-// char param[1024];
-// char jsonBuf[1024 + 128];
+// char param[4096];
+char jsonBuf[4096];
 //mqtt发布post消息(上传数据)
 void mqttPublish()
 {
     if (mqttClient.connected())
     {
-        mqttPulish_f = true;
+        // mqttPulish_f = true;
         // // sprintf(param, "{\"LightSwitch\":%d}", digitalRead(LED_B)); //我们把要上传的数据写在param里
-        // strcpy(param, payloadBuf);
-        // postMsgId += 1;
-        // sprintf(jsonBuf, ALINK_BODY_FORMAT, postMsgId, ALINK_METHOD_PROP_POST, param);
-        // //再从mqtt客户端中发布post消息
-        // if (mqttClient.publish(ALINK_TOPIC_PROP_POST, jsonBuf))
-        // {
-        //     // Serial.print("Post message to cloud: ");
-        //     // Serial.println(jsonBuf);
+        if (JSON_Analysis::convOK)
+        {
+            // strcpy(param, payloadBuf);
+            postMsgId += 1;
+            sprintf(jsonBuf, ALINK_BODY_FORMAT, postMsgId, ALINK_METHOD_PROP_POST, JSON_Analysis::payloadBuf);
 
-        //     Serial.printf("publish to <%s> is succeed! \r\n", ALINK_TOPIC_PROP_POST);
-        // }
-        // else
-        // {
-        //     Serial.printf("publish to <%s> is failed! \r\n", ALINK_TOPIC_PROP_POST);
-        // }
+            //再从mqtt客户端中发布post消息
+            if (mqttClient.publish(ALINK_TOPIC_PROP_POST, jsonBuf))
+            {
+                // Serial.print("Post message to cloud: ");
+                Serial.println(jsonBuf);
+                Serial.printf("publish to <%s> is succeed! \r\n", ALINK_TOPIC_PROP_POST);
+            }
+            else
+            {
+                Serial.printf("publish to <%s> is failed! \r\n", ALINK_TOPIC_PROP_POST);
+            }
+        }
+
         // char *sendFrameBuf = (char *)ps_malloc(PHOTO_FILE_SIZE);
         // // static char sendFrameBuf[PHOTO_FILE_SIZE] = {0};
-
         // if (photoFname_a.size() > 0)
         // {
         //     capturePhoto_lock = false;

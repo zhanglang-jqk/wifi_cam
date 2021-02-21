@@ -14,20 +14,32 @@
 #include "ArduinoJson.h"
 /* 宏定义 ----------------------------------------------------------------------*/
 /* 类型定义 --------------------------------------------------------------------*/
-class SerialReceiveBuffer
+
+#define JSONA_SERIAL Serial
+#define JSONA_BADU_RATE 9600
+#define JSONA_BUFSIZE 1024
+
+class JSON_Analysis
 {
-#define SBUF_SIZE 1024
 public:
-    u8 buf[SBUF_SIZE] = {0};
-    u16 rev_c = 0;
-    bool revd_f = false; //接收完成
+    /* variable ---------------------------------------------------------------------------------------------------------------*/
+    static bool convOK;
+    static uint8_t payloadBuf[JSONA_BUFSIZE];
+    /* function ---------------------------------------------------------------------------------------------------------------*/
+    // void begin(HardwareSerial s);
+    void loop();
+
+private:
+    /* variable ---------------------------------------------------------------------------------------------------------------*/
+    // HardwareSerial _serial;
+    StaticJsonDocument<JSONA_BUFSIZE> _root;
+    /* function ---------------------------------------------------------------------------------------------------------------*/
+    bool checksum();
 };
-#define JA_SERIAL Serial
 /* 变量声明 --------------------------------------------------------------------*/
-extern StaticJsonDocument<1024> root;
-extern SerialReceiveBuffer sRevBuf;
-extern char payloadBuf[1024];
+extern char payloadBuf[JSONA_BUFSIZE];
+extern bool payloadRecved;
 /* 函数声明 --------------------------------------------------------------------*/
-void JA_Init();
-void JA_Scan();
+// void JSONA_Init();
+// void JSONA_Scan();
 #endif // __JSON_ANALYSIS_H_

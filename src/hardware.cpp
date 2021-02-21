@@ -9,7 +9,7 @@
 /* 包含头文件 -------------------------------------------------------------------*/
 #include "hardware.h"
 // Time
-#include "time.h" 
+#include "time.h"
 #include "lwip/err.h"
 #include "lwip/apps/sntp.h"
 
@@ -57,7 +57,6 @@ bool internet_connected = false;
 struct tm timeinfo;
 time_t now;
 
-
 char localip[20];
 // WiFiEventId_t eventID;
 WiFiEventId_t eventID;
@@ -72,92 +71,90 @@ void init_time();
 static esp_err_t init_sdcard();
 /* 函数实现 ---------------------------------------------------------------------*/
 
-
 void init_hardware()
 {
-    eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
-        Serial.print("WiFi lost connection. Reason: ");
-        Serial.println(info.disconnected.reason);
+  eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+    Serial.print("WiFi lost connection. Reason: ");
+    Serial.println(info.disconnected.reason);
 
-        if (WiFi.status() == WL_CONNECTED)
-        {
-            Serial.println("*** connected/disconnected issue!   WiFi disconnected ???...");
-            WiFi.disconnect();
-        }
-        else
-        {
-            Serial.println("*** WiFi disconnected ???...");
-        }
-    },
-                           WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
-
-    if (init_wifi())
-    { // Connected to WiFi
-        internet_connected = true;
-        Serial.println("Internet connected");
-        init_time();
-        time(&now);
-        //setenv("TZ", "GMT0BST,M3.5.0/01,M10.5.0/02", 1);
-        // zzz
-        setenv("TZ", "MST7MDT,M3.2.0/2:00:00,M11.1.0/2:00:00", 1); // mountain time zone
-        tzset();
-    }
-
-    camera_config_t config;
-    config.ledc_channel = LEDC_CHANNEL_0;
-    config.ledc_timer = LEDC_TIMER_0;
-    config.pin_d0 = Y2_GPIO_NUM;
-    config.pin_d1 = Y3_GPIO_NUM;
-    config.pin_d2 = Y4_GPIO_NUM;
-    config.pin_d3 = Y5_GPIO_NUM;
-    config.pin_d4 = Y6_GPIO_NUM;
-    config.pin_d5 = Y7_GPIO_NUM;
-    config.pin_d6 = Y8_GPIO_NUM;
-    config.pin_d7 = Y9_GPIO_NUM;
-    config.pin_xclk = XCLK_GPIO_NUM;
-    config.pin_pclk = PCLK_GPIO_NUM;
-    config.pin_vsync = VSYNC_GPIO_NUM;
-    config.pin_href = HREF_GPIO_NUM;
-    config.pin_sscb_sda = SIOD_GPIO_NUM;
-    config.pin_sscb_scl = SIOC_GPIO_NUM;
-    config.pin_pwdn = PWDN_GPIO_NUM;
-    config.pin_reset = RESET_GPIO_NUM;
-    config.xclk_freq_hz = 20000000;
-    config.pixel_format = PIXFORMAT_JPEG;
-
-    //init with high specs to pre-allocate larger buffers
-    if (psramFound())
+    if (WiFi.status() == WL_CONNECTED)
     {
-        config.frame_size = FRAMESIZE_UXGA;
-        config.jpeg_quality = 1;
-        config.fb_count = 2;
+      Serial.println("*** connected/disconnected issue!   WiFi disconnected ???...");
+      WiFi.disconnect();
     }
     else
     {
-        config.frame_size = FRAMESIZE_SVGA; // svga 12 fails due to jpg 60000
-        config.jpeg_quality = 12;
-        config.fb_count = 1;
+      Serial.println("*** WiFi disconnected ???...");
     }
+  },
+                         WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
 
-    // camera init
-    cam_err = esp_camera_init(&config);
-    if (cam_err != ESP_OK)
-    {
-        Serial.printf("Camera init failed with error 0x%x", cam_err);
-        major_fail();
-        return;
-    }
+  if (init_wifi())
+  { // Connected to WiFi
+    internet_connected = true;
+    Serial.println("Internet connected");
+    init_time();
+    time(&now);
+    //setenv("TZ", "GMT0BST,M3.5.0/01,M10.5.0/02", 1);
+    // zzz
+    setenv("TZ", "MST7MDT,M3.2.0/2:00:00,M11.1.0/2:00:00", 1); // mountain time zone
+    tzset();
+  }
 
-    // SD camera init
-    card_err = init_sdcard();
-    if (card_err != ESP_OK)
-    {
-        Serial.printf("SD Card init failed with error 0x%x", card_err);
-        major_fail();
-        return;
-    }
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+  config.pin_sscb_sda = SIOD_GPIO_NUM;
+  config.pin_sscb_scl = SIOC_GPIO_NUM;
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+
+  //init with high specs to pre-allocate larger buffers
+  if (psramFound())
+  {
+      config.frame_size = FRAMESIZE_UXGA;
+      config.jpeg_quality = 1;
+      config.fb_count = 2;
+  }
+  else
+  {
+      config.frame_size = FRAMESIZE_SVGA; // svga 12 fails due to jpg 60000
+      config.jpeg_quality = 12;
+      config.fb_count = 1;
+  }
+
+  // camera init
+  cam_err = esp_camera_init(&config);
+  if (cam_err != ESP_OK)
+  {
+      Serial.printf("Camera init failed with error 0x%x", cam_err);
+      major_fail();
+      return;
+  }
+
+  // SD camera init
+  card_err = init_sdcard();
+  if (card_err != ESP_OK)
+  {
+      Serial.printf("SD Card init failed with error 0x%x", card_err);
+      major_fail();
+      return;
+  }
 }
-
 
 bool init_wifi()
 {
@@ -250,6 +247,5 @@ static esp_err_t init_sdcard()
   Serial.print("SD_MMC Begin: ");
   Serial.println(SD_MMC.begin()); // required by ftp system ??
 }
-
 
 //hardware.cpp

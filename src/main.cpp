@@ -77,7 +77,6 @@
     2.  Your preferred ip address (with default gateway, etc)
     3.  Your Timezone for use in filenames
     4.  Defaults for framesize, quality, ... and if the recording should start on reboot of the ESP32 without receiving a command
-  
 */
 
 //#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
@@ -93,6 +92,7 @@
 #include <sys/stat.h>
 
 FtpServer ftpSrv; //set #define FTP_DEBUG in ESP32FtpServer.h to see ftp verbose on serial
+JSON_Analysis jsona;
 
 char *filename;
 char *stream;
@@ -132,6 +132,8 @@ u16 jsonServerPort = JSON_SERVERPORT;
 WiFiClient videoClient; //声明一个客户端对象，用于与服务器进行连接
 WiFiClient photoClient;
 WiFiClient jsonClient;
+
+#define LED_BUILTIN 33
 
 //
 // if we have no camera, or sd card, then flash rear led on and off to warn the human SOS - SOS
@@ -175,11 +177,11 @@ void major_fail()
         delay(1000);
     }
 }
+
 void setup()
 {
     //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector  // creates other problems
-    // Serial.begin(115200);
-    Serial.begin(115200);
+    Serial.begin(9600); //must 9600
 
     Serial.setDebugOutput(true);
     // zzz
@@ -189,14 +191,16 @@ void setup()
     Serial.println(" ip 192.168.1.222 ");
     Serial.println("-------------------------------------");
 
-    pinMode(33, OUTPUT); // little red led on back of chip
+    pinMode(LED_BUILTIN, OUTPUT); // little red led on back of chip
 
-    digitalWrite(33, LOW); // turn on the red LED on the back of chip
+    digitalWrite(LED_BUILTIN, LOW); // turn on the red LED on the back of chip
 
     if (psramFound())
     {
         Serial.println("psram founed!");
     }
+
+    // xTaskCreateUniversal(jsonAnalysisTask, "jsonAnalysisTask", 1024, NULL, 1, &jsonAnalysisTaskHandle, CONFIG_ARDUINO_RUNNING_CORE);
 
     // MyPubSubClient::mqttBuf = (u8 *)ps_malloc(MyPubSubClient::MQTTBUF_SIZE);
     // if (MyPubSubClient::mqttBuf == NULL)
@@ -246,7 +250,7 @@ void setup()
     newfile = 0;   // no file is open  // don't fiddle with this!
     recording = 1; // start recording on reboot without sending a command
 
-    // MQTTCLIENT_Init();
+    MQTTCLIENT_Init();
 
     // if (videoClient.connect(serverIP, videoServerPort))
     //     Serial.println("conenct to remote server:video_port succeed!");
@@ -276,9 +280,6 @@ u32 capturePhoto_c = 0;
 
 std::vector<String> photoFilename_a;
 std::vector<String> videoFilename_a;
-
-char param[1024];
-char jsonBuf[1024 + 128];
 
 bool mqttPulish_f = false;
 bool videoAllowRecord_f = true;
@@ -321,20 +322,11 @@ void loop()
         Serial.println("***** WiFi reconnect *****");
     }
 
-    //   MQTTCLIENT_ClientReconnect();
-    wakeup = millis();
-    if (wakeup - last_wakeup > (10 * 60 * 1000))
-    { // 10 minutes
-        last_wakeup = millis();
+    MQTTCLIENT_ClientReconnect();
 
-        //init_wifi();
-        //Serial.println("... wakeup call ...");
-        //do_time();
-    }
+    jsona.loop();
 
     // ftpSrv.handleFTP();
-
-    JA_Scan();
 
     if (millis() - capturePhoto_c > CAPTURE_PHOTO_INTERVAL)
     {
@@ -350,40 +342,47 @@ void loop()
         make_avi();
     }
 
-    if (millis() - report2server_c > REPORT2SERVER_INTERVAL)
+    // if (millis() - report2server_c > REPORT2SERVER_INTERVAL)
+    // {
+    //     if (sRevBuf.revd_f)
+    //     {
+    //         if (jsonClient.write(sRevBuf.buf, sRevBuf.rev_c) == 0)
+    //         {
+    //             Serial.println("send json failed!");
+    //         }
+    //         sRevBuf.rev_c = 0, sRevBuf.revd_f = false;
+    //     }
+    //     if (photoAllowCapture_f == false && photoFilename_a.size() > 0)
+    //     {
+    //         Serial.printf("send %d photo to server \r\n", photoFilename_a.size());
+    //         for (std::vector<String>::iterator it = photoFilename_a.begin(); it != photoFilename_a.end(); it++)
+    //         {
+    //             if (sendFile2Server(it->c_str(), photoClient) == false)
+    //                 break;
+    //         }
+
+    //         photoFilename_a.clear();
+    //         photoAllowCapture_f = true;
+    //     }
+    //     if (videoAllowRecord_f == false && videoFilename_a.size() > 0)
+    //     {
+    //         Serial.printf("send %d video to server \r\n", videoFilename_a.size());
+    //         for (std::vector<String>::iterator it = videoFilename_a.begin(); it != videoFilename_a.end(); it++)
+    //         {
+    //             if (sendFile2Server(it->c_str(), videoClient) == false)
+    //                 break;
+    //         }
+    //         videoFilename_a.clear();
+    //         videoAllowRecord_f = true;
+    //     }
+
+    //     report2server_c = millis();
+    // }
+
+    static uint32_t led_count = millis();
+    if (millis() - led_count > 100)
     {
-        if (sRevBuf.revd_f)
-        {
-            if (jsonClient.write(sRevBuf.buf, sRevBuf.rev_c) == 0)
-            {
-                Serial.println("send json failed!");
-            }
-            sRevBuf.rev_c = 0, sRevBuf.revd_f = false;
-        }
-        if (photoAllowCapture_f == false && photoFilename_a.size() > 0)
-        {
-            Serial.printf("send %d photo to server \r\n", photoFilename_a.size());
-            for (std::vector<String>::iterator it = photoFilename_a.begin(); it != photoFilename_a.end(); it++)
-            {
-                if (sendFile2Server(it->c_str(), photoClient) == false)
-                    break;
-            }
-
-            photoFilename_a.clear();
-            photoAllowCapture_f = true;
-        }
-        if (videoAllowRecord_f == false && videoFilename_a.size() > 0)
-        {
-            Serial.printf("send %d video to server \r\n", videoFilename_a.size());
-            for (std::vector<String>::iterator it = videoFilename_a.begin(); it != videoFilename_a.end(); it++)
-            {
-                if (sendFile2Server(it->c_str(), videoClient) == false)
-                    break;
-            }
-            videoFilename_a.clear();
-            videoAllowRecord_f = true;
-        }
-
-        report2server_c = millis();
+        digitalRead(LED_BUILTIN) == 0 ? digitalWrite(LED_BUILTIN, HIGH) : digitalWrite(LED_BUILTIN, LOW);
+        led_count = millis();
     }
 }

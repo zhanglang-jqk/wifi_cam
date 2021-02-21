@@ -16,7 +16,7 @@
 /* 宏定义 ----------------------------------------------------------------------*/
 #define PRODUCT_KEY "a1ATmRZUn7U"                        //产品ID
 #define DEVICE_NAME "k5l0KMex1DmcG0PGzKjC"               //设备名
-#define DEVICE_SECRET "37aaeedc369efee47e0b85b76521cae4" //设备key
+#define DEVICE_SECRET "a776b02ea77adc5d591a0d381a32943a" //设备key
 
 //设备下发命令的set主题
 #define ALINK_TOPIC_PROP_SET "/sys/" PRODUCT_KEY "/" DEVICE_NAME "/thing/service/property/set"
@@ -38,7 +38,8 @@ class MyPubSubClient : public PubSubClient
 public:
     enum
     {
-        MQTTBUF_SIZE = (1 * 1024 * 1024 + 1024)
+        // MQTTBUF_SIZE = (1 * 1024 * 1024 + 1024)
+        MQTTBUF_SIZE = (2 * 1024)
     };
     MyPubSubClient(Client &client);
     boolean publish(const char *topic, const uint8_t *payload, u32 plength);
